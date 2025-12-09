@@ -1,0 +1,97 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8
+    container_name: fuze-store-soketi-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root # Root password (for container management)
+      MYSQL_DATABASE: fuze-store-soketi # Initial database
+      MYSQL_USER: soketi_user # New dedicated user
+      MYSQL_PASSWORD: soketi_pass # Password for the new user
+    # ports:
+    #   - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - soketi-network
+
+  soketi:
+    image: quay.io/soketi/soketi:latest
+    container_name: fuze-store-soketi
+    restart: unless-stopped
+    ports:
+      - "6001:6001"
+    environment:
+      SOKETI_DEBUG: true
+
+      # App Manager
+      # https://docs.soketi.app/app-management/introduction
+      SOKETI_APP_MANAGER_DRIVER: "mysql"
+      SOKETI_DB_MYSQL_HOST: "db"
+      SOKETI_DB_MYSQL_PORT: 3306
+      SOKETI_DB_MYSQL_USERNAME: "soketi_user"
+      SOKETI_DB_MYSQL_PASSWORD: "soketi_pass"
+      SOKETI_DB_MYSQL_DATABASE: "fuze-store-soketi"
+      SOKETI_APP_MANAGER_MYSQL_TABLE: "apps"
+      SOKETI_APP_MANAGER_MYSQL_VERSION: "10"
+      SOKETI_APP_MANAGER_MYSQL_USE_V2: true
+      SOKETI_APP_MANAGER_CACHE_ENABLED: "true"
+      SOKETI_APP_MANAGER_CACHE_TTL: "-1"
+
+      # DynamoDB (optional)
+      SOKETI_APP_MANAGER_DYNAMODB_TABLE: "fuze-store-soketi-apps"
+      SOKETI_APP_MANAGER_DYNAMODB_REGION: "ap-southeast-1"
+      SOKETI_APP_MANAGER_DYNAMODB_ENDPOINT: ""
+
+      # SSL
+      SOKETI_SSL_CERT: ""
+      SOKETI_SSL_KEY: ""
+      SOKETI_SSL_PASS: ""
+      SOKETI_SSL_CA: ""
+
+      # Rate Limiter
+      SOKETI_RATE_LIMITER_DRIVER: "local"
+      SOKETI_RATE_LIMITER_REDIS_CLUSTER_MODE: "false"
+
+      # Limits
+      SOKETI_HTTP_MAX_REQUEST_SIZE: "100"
+      SOKETI_EVENT_MAX_CHANNELS_AT_ONCE: "100"
+      SOKETI_EVENT_MAX_NAME_LENGTH: "200"
+      SOKETI_EVENT_MAX_SIZE_IN_KB: "100"
+      SOKETI_EVENT_MAX_BATCH_SIZE: "10"
+
+      SOKETI_CHANNEL_MAX_NAME_LENGTH: "100"
+
+      SOKETI_PRESENCE_MAX_MEMBER_SIZE: "10"
+      SOKETI_PRESENCE_MAX_MEMBERS: "100"
+
+      # Webhooks
+      SOKETI_WEBHOOKS_BATCHING: "1"
+      SOKETI_WEBHOOKS_BATCHING_DURATION: "1000"
+
+      # App credentials
+      SOKETI_DEFAULT_APP_ID: "app-id"
+      SOKETI_DEFAULT_APP_KEY: "app-key"
+      SOKETI_DEFAULT_APP_SECRET: "app-secret"
+
+      SOKETI_APP_KEY: "app-key"
+      SOKETI_APP_ID: "app-id"
+      SOKETI_APP_SECRET: "app-secret"
+      SOKETI_HOST: "0.0.0.0"
+      SOKETI_PORT: 6001
+
+      # https://docs.soketi.app/advanced-usage/graceful-shutdowns
+      SOKETI_SHUTDOWN_GRACE_PERIOD: 10000
+    depends_on:
+      - db
+    networks:
+      - soketi-network
+
+volumes:
+  db_data:
+
+networks:
+  soketi-network:
+    driver: bridge
