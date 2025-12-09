@@ -1,22 +1,6 @@
 version: "3.8"
 
 services:
-  db:
-    image: mysql:8
-    container_name: fuze-store-soketi-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root # Root password (for container management)
-      MYSQL_DATABASE: fuze-store-soketi # Initial database
-      MYSQL_USER: soketi_user # New dedicated user
-      MYSQL_PASSWORD: soketi_pass # Password for the new user
-    # ports:
-    #   - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - soketi-network
-
   soketi:
     image: quay.io/soketi/soketi:latest
     container_name: fuze-store-soketi
@@ -84,6 +68,7 @@ services:
 
       # https://docs.soketi.app/advanced-usage/graceful-shutdowns
       SOKETI_SHUTDOWN_GRACE_PERIOD: 10000
+
     depends_on:
       - db
     networks:
