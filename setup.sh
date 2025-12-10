@@ -44,10 +44,10 @@ sudo apt-get install -y nodejs
 # -------------------------
 # Create a dedicated user for Soketi
 # -------------------------
-echo "👤 Creating Soketi user..."
-sudo useradd -m -s /bin/bash $SOCKETI_USER || true
-sudo mkdir -p $INSTALL_DIR
-sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR
+# echo "👤 Creating Soketi user..."
+# sudo useradd -m -s /bin/bash $SOCKETI_USER || true
+# sudo mkdir -p $INSTALL_DIR
+# sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR
 
 # -------------------------
 # Install Soketi globally
