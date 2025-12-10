@@ -29,22 +29,22 @@ INSTALL_DIR="/home/ubuntu/$REPO_NAME"  # Full path to your installation director
 # -------------------------
 # Update system and install dependencies
 # -------------------------
-echo "Updating system and installing dependencies..."
+echo "📦 Updating system and installing dependencies..."
 sudo apt update -y
 sudo apt upgrade -y
 sudo apt install -y curl git ufw software-properties-common nginx certbot python3-certbot-nginx build-essential
 
 # -------------------------
-# Install Node.js (v18 LTS)
+# Install Node.js (v20 LTS)
 # -------------------------
-echo "Installing Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
+echo "⬆️ Installing Node.js..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
 # -------------------------
 # Create a dedicated user for Soketi
 # -------------------------
-echo "Creating Soketi user..."
+echo "👤 Creating Soketi user..."
 sudo useradd -m -s /bin/bash $SOCKETI_USER || true
 sudo mkdir -p $INSTALL_DIR
 sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR
@@ -52,13 +52,13 @@ sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR
 # -------------------------
 # Install Soketi globally
 # -------------------------
-echo "Installing Soketi..."
+echo "🎧 Installing Soketi..."
 sudo npm install -g @soketi/soketi
 
 # -------------------------
 # Create Soketi config file
 # -------------------------
-echo "Creating Soketi config..."
+echo "🛠 Creating Soketi config..."
 cat > $INSTALL_DIR/soketi.env <<EOL
 # Soketi environment configuration
 
@@ -104,7 +104,7 @@ sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR/soketi.env
 # -------------------------
 # Create systemd service for Soketi
 # -------------------------
-echo "Creating systemd service..."
+echo "🚦 Creating systemd service..."
 cat > /etc/systemd/system/soketi.service <<EOL
 [Unit]
 Description=Soketi WebSocket Server
@@ -140,7 +140,7 @@ sudo ufw enable
 # -------------------------
 # Configure Nginx as reverse proxy
 # -------------------------
-echo "Configuring Nginx..."
+echo "🔧 Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/soketi <<EOL
 server {
     listen 80;
@@ -163,7 +163,7 @@ sudo systemctl restart nginx
 # -------------------------
 # Setup SSL with Certbot
 # -------------------------
-echo "Requesting SSL certificate..."
+echo "🔐 Requesting SSL certificate..."
 sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m admin@$DOMAIN
 
 # Reload Nginx
@@ -173,7 +173,7 @@ sudo systemctl reload nginx
 # Finished
 # -------------------------
 echo "----------------------------------"
-echo "Soketi setup completed!"
+echo "🎉 Setup complete!"
 echo "Access your Soketi server at: https://$DOMAIN"
 echo "Systemd service: soketi.service"
 echo "Soketi runs on port $PORT behind Nginx reverse proxy"
