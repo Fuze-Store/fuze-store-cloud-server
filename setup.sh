@@ -23,7 +23,7 @@ DB_VERSION="18.1"
 APP_ID="fuze-store-app-id" # Your Soketi App ID
 APP_KEY="fuze-store-app-key" # Your Soketi App Key
 APP_SECRET="fuze-store-app-secret" # Your Soketi App Secret
-SOCKETI_USER="soketi"
+SOCKETI_USER="ubuntu"
 INSTALL_DIR="/home/ubuntu/$REPO_NAME"  # Full path to your installation directory
 
 # -------------------------
@@ -35,19 +35,19 @@ sudo apt upgrade -y
 sudo apt install -y curl git ufw software-properties-common nginx certbot python3-certbot-nginx build-essential
 
 # -------------------------
-# Install Node.js (v20 LTS)
+# Install Node.js (v18 LTS)
 # -------------------------
 echo "⬆️ Installing Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # -------------------------
 # Create a dedicated user for Soketi
 # -------------------------
-# echo "👤 Creating Soketi user..."
-# sudo useradd -m -s /bin/bash $SOCKETI_USER || true
-# sudo mkdir -p $INSTALL_DIR
-# sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR
+echo "👤 Creating Soketi user..."
+sudo useradd -m -s /bin/bash $SOCKETI_USER || true
+sudo mkdir -p $INSTALL_DIR
+sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR
 
 # -------------------------
 # Install Soketi globally
@@ -63,7 +63,7 @@ cat > $INSTALL_DIR/soketi.env <<EOL
 # Soketi environment configuration
 
 SOKETI_DEBUG=true
-SOKETI_APP_MANAGER_DRIVER=mysql
+SOKETI_APP_MANAGER_DRIVER=postgres
 SOKETI_DB_POSTGRES_HOST=$DB_HOST
 SOKETI_DB_POSTGRES_PORT=$DB_PORT
 SOKETI_DB_POSTGRES_USERNAME=$DB_USER
@@ -148,6 +148,9 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:$PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "Upgrade";
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
