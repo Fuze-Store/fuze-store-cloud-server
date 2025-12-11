@@ -1,10 +1,10 @@
 {
   "app": {
-    "id": "app-id",
-    "key": "app-key",
-    "secret": "app-secret",
-    "enableClientMessages": true,
-    "enableStats": true
+    "id": "fuze-store-app-id",
+    "key": "fuze-store-app-key",
+    "secret": "fuze-store-app-secret",
+    "enableClientMessages": false,
+    "enableStats": false
   },
   "port": 6001,
   "host": "0.0.0.0",

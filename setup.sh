@@ -62,8 +62,8 @@ echo "🛠 Creating Soketi config..."
 cat > $INSTALL_DIR/soketi.env <<EOL
 # Soketi environment configuration
 
-SOKETI_DEBUG=true
-SOKETI_APP_MANAGER_DRIVER=postgres
+SOKETI_DEBUG=false
+SOKETI_APP_MANAGER_DRIVER=array
 SOKETI_DB_POSTGRES_HOST=$DB_HOST
 SOKETI_DB_POSTGRES_PORT=$DB_PORT
 SOKETI_DB_POSTGRES_USERNAME=$DB_USER
@@ -116,6 +116,8 @@ User=$SOCKETI_USER
 WorkingDirectory=$INSTALL_DIR
 EnvironmentFile=$INSTALL_DIR/soketi.env
 ExecStart=/usr/bin/soketi start
+StandardOutput=journal
+StandardError=journal
 Restart=always
 RestartSec=5
 LimitNOFILE=65535
