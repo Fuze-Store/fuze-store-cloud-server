@@ -12,17 +12,7 @@ services:
 
       # App Manager
       # https://docs.soketi.app/app-management/introduction
-      SOKETI_APP_MANAGER_DRIVER: "mysql"
-      SOKETI_DB_MYSQL_HOST: "db"
-      SOKETI_DB_MYSQL_PORT: 3306
-      SOKETI_DB_MYSQL_USERNAME: "soketi_user"
-      SOKETI_DB_MYSQL_PASSWORD: "soketi_pass"
-      SOKETI_DB_MYSQL_DATABASE: "fuze-store-soketi"
-      SOKETI_APP_MANAGER_MYSQL_TABLE: "apps"
-      SOKETI_APP_MANAGER_MYSQL_VERSION: "10"
-      SOKETI_APP_MANAGER_MYSQL_USE_V2: true
-      SOKETI_APP_MANAGER_CACHE_ENABLED: "true"
-      SOKETI_APP_MANAGER_CACHE_TTL: "-1"
+      SOKETI_APP_MANAGER_DRIVER: "array"
 
       # DynamoDB (optional)
       SOKETI_APP_MANAGER_DYNAMODB_TABLE: "fuze-store-soketi-apps"
@@ -56,13 +46,13 @@ services:
       SOKETI_WEBHOOKS_BATCHING_DURATION: "1000"
 
       # App credentials
-      SOKETI_DEFAULT_APP_ID: "app-id"
-      SOKETI_DEFAULT_APP_KEY: "app-key"
-      SOKETI_DEFAULT_APP_SECRET: "app-secret"
+      SOKETI_DEFAULT_APP_ID: "fuze-store-app-id"
+      SOKETI_DEFAULT_APP_KEY: "fuze-store-app-key"
+      SOKETI_DEFAULT_APP_SECRET: "fuze-store-app-secret"
 
-      SOKETI_APP_KEY: "app-key"
-      SOKETI_APP_ID: "app-id"
-      SOKETI_APP_SECRET: "app-secret"
+      SOKETI_APP_KEY: "fuze-store-app-key"
+      SOKETI_APP_ID: "fuze-store-app-id"
+      SOKETI_APP_SECRET: "fuze-store-app-secret"
       SOKETI_HOST: "0.0.0.0"
       SOKETI_PORT: 6001
 
