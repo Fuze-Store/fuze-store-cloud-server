@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# -------------------------
-# Production Soketi Setup (No Docker)
-# -------------------------
-
 # Exit on any error
 set -e
 
@@ -13,11 +9,11 @@ set -e
 REPO_NAME="fuze-store-cloud-server" # Name of your repository
 DOMAIN="socket.dev.fuze-store.com" # Your domain name
 PORT="6001" # Port for Soketi to listen on
-DB_HOST="fuze-store-dev-db.c5q6y0ascohg.ap-southeast-1.rds.amazonaws.com" 
-DB_PORT="3306" 
-DB_USER="dbadmin"
-DB_PASS="AVNS_IXz7UxZBS1FMs4G84PL"
-DB_NAME="fuze"
+DB_HOST="" 
+DB_PORT="" 
+DB_USER=""
+DB_PASS=""
+DB_NAME=""
 DB_TABLE="websocket_apps"
 DB_VERSION="18.1"
 APP_ID="fuze-store-app-id" # Your Soketi App ID
@@ -63,7 +59,7 @@ cat > $INSTALL_DIR/soketi.env <<EOL
 # Soketi environment configuration
 
 SOKETI_DEBUG=false
-SOKETI_APP_MANAGER_DRIVER=array
+SOKETI_APP_MANAGER_DRIVER=postgres
 SOKETI_DB_POSTGRES_HOST=$DB_HOST
 SOKETI_DB_POSTGRES_PORT=$DB_PORT
 SOKETI_DB_POSTGRES_USERNAME=$DB_USER
