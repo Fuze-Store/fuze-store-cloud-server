@@ -86,4 +86,4 @@ If using PostgreSQL for app management, run the SQL in `setup.sql` on your datab
 
 ## License
 
-This project is licensed under the MIT License.
+This project is intended for internal use. Please review and update the license as appropriate for your organization.
