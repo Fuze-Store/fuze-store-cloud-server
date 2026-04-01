@@ -17,7 +17,7 @@ This repository contains the cloud server setup for Fuze Store, featuring a real
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/fuze-store-cloud-server.git
+git clone https://github.com/Fuze-Store/fuze-store-cloud-server.git
 cd fuze-store-cloud-server
 ```
 

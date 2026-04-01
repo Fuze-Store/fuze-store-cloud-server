@@ -4,23 +4,40 @@
 set -e
 
 # -------------------------
-# Variables - EDIT THESE
+# Load environment variables from .env
 # -------------------------
-REPO_NAME="fuze-store-cloud-server" # Name of your repository
-DOMAIN="socket.dev.fuze-store.com" # Your domain name
-PORT="6001" # Port for Soketi to listen on
-DB_HOST="" 
-DB_PORT="" 
-DB_USER=""
-DB_PASS=""
-DB_NAME=""
-DB_TABLE="websocket_apps"
-DB_VERSION=""
-APP_ID="fuze-store-app-id" # Your Soketi App ID
-APP_KEY="fuze-store-app-key" # Your Soketi App Key
-APP_SECRET="fuze-store-app-secret" # Your Soketi App Secret
-SOCKETI_USER="ubuntu"
-INSTALL_DIR="/home/ubuntu/$REPO_NAME"  # Full path to your installation directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  set -a
+  source "$SCRIPT_DIR/.env"
+  set +a
+  echo "✅ Loaded .env from $SCRIPT_DIR/.env"
+else
+  echo "❌ .env file not found at $SCRIPT_DIR/.env"
+  echo "   Copy .env.example to .env and fill in your values:"
+  echo "   cp .env.example .env"
+  exit 1
+fi
+
+# -------------------------
+# Variables - Override in .env
+# -------------------------
+REPO_NAME="${REPO_NAME:-fuze-store-cloud-server}"
+DOMAIN="${DOMAIN:-socket.dev.fuze-store.com}"
+PORT="${SOKETI_PORT:-6001}"
+DB_HOST="${SOKETI_DB_POSTGRES_HOST}"
+DB_PORT="${SOKETI_DB_POSTGRES_PORT}"
+DB_USER="${SOKETI_DB_POSTGRES_USERNAME}"
+DB_PASS="${SOKETI_DB_POSTGRES_PASSWORD}"
+DB_NAME="${SOKETI_DB_POSTGRES_DATABASE}"
+DB_TABLE="${SOKETI_APP_MANAGER_POSTGRES_TABLE:-websocket_apps}"
+DB_VERSION="${SOKETI_APP_MANAGER_POSTGRES_VERSION}"
+APP_ID="${SOKETI_APP_ID:-fuze-store-app-id}"
+APP_KEY="${SOKETI_APP_KEY:-fuze-store-app-key}"
+APP_SECRET="${SOKETI_APP_SECRET:-fuze-store-app-secret}"
+CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@$DOMAIN}"
+SOKETI_USER="${SOKETI_USER:-ubuntu}"
+INSTALL_DIR="${INSTALL_DIR:-/home/$SOKETI_USER/$REPO_NAME}"
 
 # -------------------------
 # Update system and install dependencies
@@ -28,22 +45,24 @@ INSTALL_DIR="/home/ubuntu/$REPO_NAME"  # Full path to your installation director
 echo "📦 Updating system and installing dependencies..."
 sudo apt update -y
 sudo apt upgrade -y
-sudo apt install -y curl git ufw software-properties-common nginx certbot python3-certbot-nginx build-essential
+sudo apt install -y \
+    curl git unzip ufw build-essential software-properties-common \
+    postgresql-client nginx certbot python3-certbot-nginx supervisor
 
 # -------------------------
-# Install Node.js (v18 LTS)
+# Install Node.js (v20 LTS)
 # -------------------------
 echo "⬆️ Installing Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # -------------------------
 # Create a dedicated user for Soketi
 # -------------------------
 echo "👤 Creating Soketi user..."
-sudo useradd -m -s /bin/bash $SOCKETI_USER || true
+sudo useradd -m -s /bin/bash $SOKETI_USER || true
 sudo mkdir -p $INSTALL_DIR
-sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR
+sudo chown $SOKETI_USER:$SOKETI_USER $INSTALL_DIR
 
 # -------------------------
 # Install Soketi globally
@@ -55,7 +74,7 @@ sudo npm install -g @soketi/soketi
 # Create Soketi config file
 # -------------------------
 echo "🛠 Creating Soketi config..."
-cat > $INSTALL_DIR/soketi.env <<EOL
+sudo tee $INSTALL_DIR/soketi.env > /dev/null <<EOL
 # Soketi environment configuration
 
 SOKETI_DEBUG=false
@@ -90,25 +109,26 @@ SOKETI_DEFAULT_APP_SECRET=$APP_SECRET
 SOKETI_APP_KEY=$APP_KEY
 SOKETI_APP_ID=$APP_ID
 SOKETI_APP_SECRET=$APP_SECRET
-SOKETI_HOST=0.0.0.0
+SOKETI_HOST=127.0.0.1
 SOKETI_PORT=$PORT
 SOKETI_SHUTDOWN_GRACE_PERIOD=10000
 EOL
 
-sudo chown $SOCKETI_USER:$SOCKETI_USER $INSTALL_DIR/soketi.env
+sudo chown $SOKETI_USER:$SOKETI_USER $INSTALL_DIR/soketi.env
+sudo chmod 600 $INSTALL_DIR/soketi.env
 
 # -------------------------
 # Create systemd service for Soketi
 # -------------------------
 echo "🚦 Creating systemd service..."
-cat > /etc/systemd/system/soketi.service <<EOL
+sudo tee /etc/systemd/system/soketi.service > /dev/null <<EOL
 [Unit]
 Description=Soketi WebSocket Server
 After=network.target
 
 [Service]
 Type=simple
-User=$SOCKETI_USER
+User=$SOKETI_USER
 WorkingDirectory=$INSTALL_DIR
 EnvironmentFile=$INSTALL_DIR/soketi.env
 ExecStart=/usr/bin/soketi start
@@ -133,7 +153,7 @@ sudo systemctl start soketi.service
 echo "Configuring firewall..."
 sudo ufw allow OpenSSH
 sudo ufw allow 'Nginx Full'
-sudo ufw enable
+sudo ufw --force enable
 
 # -------------------------
 # Configure Nginx as reverse proxy
@@ -153,6 +173,12 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     }
 }
 EOL
@@ -165,7 +191,7 @@ sudo systemctl restart nginx
 # Setup SSL with Certbot
 # -------------------------
 echo "🔐 Requesting SSL certificate..."
-sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m admin@$DOMAIN
+sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $CERTBOT_EMAIL
 
 # Reload Nginx
 sudo systemctl reload nginx

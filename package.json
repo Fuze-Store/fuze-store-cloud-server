@@ -1,7 +1,7 @@
 {
   "name": "fuze-store-cloud-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Cloud server configuration for Fuze Store Soketi WebSocket deployment",
   "repository": {
     "type": "git",
     "url": "git@github-personal:Fuze-Store/fuze-store-cloud-server.git"
@@ -9,7 +9,6 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

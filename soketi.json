@@ -1,8 +1,8 @@
 {
   "app": {
-    "id": "fuze-store-app-id",
-    "key": "fuze-store-app-key",
-    "secret": "fuze-store-app-secret",
+    "id": "your-app-id",
+    "key": "your-app-key",
+    "secret": "your-app-secret",
     "enableClientMessages": false,
     "enableStats": false
   },

@@ -1,6 +1,27 @@
 version: "3.8"
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: fuze-store-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: soketi
+      POSTGRES_PASSWORD: soketi_secret
+      POSTGRES_DB: soketi
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - soketi-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soketi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   soketi:
     image: quay.io/soketi/soketi:latest
     container_name: fuze-store-soketi
@@ -8,16 +29,24 @@ services:
     ports:
       - "6001:6001"
     environment:
-      SOKETI_DEBUG: true
+      SOKETI_DEBUG: false
 
-      # App Manager
+      # App Manager - PostgreSQL
       # https://docs.soketi.app/app-management/introduction
-      SOKETI_APP_MANAGER_DRIVER: "array"
+      SOKETI_APP_MANAGER_DRIVER: "postgres"
 
-      # DynamoDB (optional)
-      SOKETI_APP_MANAGER_DYNAMODB_TABLE: "fuze-store-soketi-apps"
-      SOKETI_APP_MANAGER_DYNAMODB_REGION: "ap-southeast-1"
-      SOKETI_APP_MANAGER_DYNAMODB_ENDPOINT: ""
+      # PostgreSQL connection
+      SOKETI_DB_POSTGRES_HOST: "db"
+      SOKETI_DB_POSTGRES_PORT: "5432"
+      SOKETI_DB_POSTGRES_USERNAME: "soketi"
+      SOKETI_DB_POSTGRES_PASSWORD: "soketi_secret"
+      SOKETI_DB_POSTGRES_DATABASE: "soketi"
+      SOKETI_APP_MANAGER_POSTGRES_TABLE: "websocket_apps"
+      SOKETI_APP_MANAGER_POSTGRES_VERSION: "13.3"
+
+      # App Manager Cache (in-memory, per-app)
+      SOKETI_APP_MANAGER_CACHE_ENABLED: "true"
+      SOKETI_APP_MANAGER_CACHE_TTL: "-1"
 
       # SSL
       SOKETI_SSL_CERT: ""
@@ -45,7 +74,7 @@ services:
       SOKETI_WEBHOOKS_BATCHING: "1"
       SOKETI_WEBHOOKS_BATCHING_DURATION: "1000"
 
-      # App credentials
+      # Default app credentials (used as fallback when DB has no apps)
       SOKETI_DEFAULT_APP_ID: "fuze-store-app-id"
       SOKETI_DEFAULT_APP_KEY: "fuze-store-app-key"
       SOKETI_DEFAULT_APP_SECRET: "fuze-store-app-secret"
@@ -60,7 +89,8 @@ services:
       SOKETI_SHUTDOWN_GRACE_PERIOD: 10000
 
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - soketi-network
 
