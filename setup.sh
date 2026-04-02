@@ -52,9 +52,10 @@ sudo apt install -y \
 # -------------------------
 # Install Node.js (v18 LTS - required by Soketi/uWebSockets.js)
 # -------------------------
-echo "⬆️ Installing Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
+echo "⬆️ Installing Node.js 18 (required by Soketi/uWebSockets.js)..."
+sudo npm install -g n || sudo apt-get install -y npm && sudo npm install -g n
+sudo n 18
+hash -r
 
 # -------------------------
 # Create a dedicated user for Soketi
