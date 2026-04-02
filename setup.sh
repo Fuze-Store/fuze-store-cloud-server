@@ -65,6 +65,12 @@ sudo mkdir -p $INSTALL_DIR
 sudo chown $SOKETI_USER:$SOKETI_USER $INSTALL_DIR
 
 # -------------------------
+# Run database setup
+# -------------------------
+echo "🗄️ Running setup.sql..."
+PGPASSWORD=$DB_PASS psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$SCRIPT_DIR/setup.sql"
+
+# -------------------------
 # Install Soketi globally
 # -------------------------
 echo "🎧 Installing Soketi..."
