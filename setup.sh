@@ -71,6 +71,13 @@ sudo chown $SOKETI_USER:$SOKETI_USER $INSTALL_DIR
 echo "🗄️ Running setup.sql..."
 PGPASSWORD=$DB_PASS psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$SCRIPT_DIR/setup.sql"
 
+echo "🔑 Inserting default app credentials..."
+PGPASSWORD=$DB_PASS psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
+INSERT INTO websocket_apps (id, key, secret, max_connections, enable_client_messages, enabled, max_backend_events_per_sec, max_client_events_per_sec, max_read_req_per_sec, max_presence_members_per_channel, max_presence_member_size_in_kb, max_channel_name_length, max_event_channels_at_once, max_event_name_length, max_event_payload_in_kb, max_event_batch_size, webhooks, enable_user_authentication)
+VALUES ('$APP_ID', '$APP_KEY', '$APP_SECRET', 200, 0, 1, 100, 100, 100, 100, 10, 100, 100, 200, 100, 10, '[]', 0)
+ON CONFLICT (id) DO NOTHING;
+"
+
 # -------------------------
 # Install Soketi globally
 # -------------------------
