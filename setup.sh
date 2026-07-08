@@ -39,6 +39,44 @@ CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@$DOMAIN}"
 SOKETI_USER="${SOKETI_USER:-ubuntu}"
 INSTALL_DIR="${INSTALL_DIR:-/home/$SOKETI_USER/$REPO_NAME}"
 
+# WebSocket capacity — env-driven with generous headroom, NOT tied to a fixed store count.
+# -1 = unlimited (bounded only by the box's RAM + file descriptors / LimitNOFILE=65535 in the unit).
+# Scale by resizing the instance (t4g.small -> t4g.medium), not by editing a hardcoded number.
+APP_MAX_CONNECTIONS="${SOKETI_APP_MAX_CONNECTIONS:--1}"
+APP_MAX_BACKEND_EVENTS="${SOKETI_APP_MAX_BACKEND_EVENTS_PER_SEC:--1}"
+APP_MAX_CLIENT_EVENTS="${SOKETI_APP_MAX_CLIENT_EVENTS_PER_SEC:--1}"
+APP_MAX_READ_REQ="${SOKETI_APP_MAX_READ_REQ_PER_SEC:--1}"
+
+# Log retention (days) for journald + nginx logrotate on this box.
+LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS:-14}"
+
+# -------------------------
+# Refuse to provision a PROD box with the shipped default broadcast secrets.
+# A public Soketi with a known secret is an open relay for broadcasts.
+# -------------------------
+case "$DOMAIN" in
+  *dev*|*localhost*|*test*|*staging*) : ;; # non-prod domains may keep defaults
+  *)
+    if [ "$APP_ID" = "fuze-store-app-id" ] || [ "$APP_KEY" = "fuze-store-app-key" ] || [ "$APP_SECRET" = "fuze-store-app-secret" ]; then
+      echo "❌ Refusing to run on prod domain '$DOMAIN' with default Soketi app credentials."
+      echo "   Set unique SOKETI_APP_ID / SOKETI_APP_KEY / SOKETI_APP_SECRET in .env first."
+      exit 1
+    fi
+    ;;
+esac
+
+# -------------------------
+# Ensure swap exists (a 2 GB box can OOM building native uWebSockets.js)
+# -------------------------
+if ! sudo swapon --show | grep -q '/swapfile'; then
+  echo "💾 Creating 2G swapfile..."
+  sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile
+  sudo swapon /swapfile
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
+
 # -------------------------
 # Update system and install dependencies
 # -------------------------
@@ -50,10 +88,13 @@ sudo apt install -y \
     postgresql-client nginx certbot python3-certbot-nginx supervisor
 
 # -------------------------
-# Install Node.js (v18 LTS - required by Soketi/uWebSockets.js)
+# Install Node.js (v18 LTS - the ONLY version supported by Soketi/uWebSockets.js — do NOT bump)
 # -------------------------
 echo "⬆️ Installing Node.js 18 (required by Soketi/uWebSockets.js)..."
-sudo npm install -g n || sudo apt-get install -y npm && sudo npm install -g n
+if ! command -v n >/dev/null 2>&1; then
+  sudo apt-get install -y npm
+  sudo npm install -g n
+fi
 sudo n 18
 hash -r
 
@@ -71,11 +112,16 @@ sudo chown $SOKETI_USER:$SOKETI_USER $INSTALL_DIR
 echo "🗄️ Running setup.sql..."
 PGPASSWORD=$DB_PASS psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$SCRIPT_DIR/setup.sql"
 
-echo "🔑 Inserting default app credentials..."
+echo "🔑 Upserting app credentials (max_connections=$APP_MAX_CONNECTIONS)..."
 PGPASSWORD=$DB_PASS psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
 INSERT INTO websocket_apps (id, key, secret, max_connections, enable_client_messages, enabled, max_backend_events_per_sec, max_client_events_per_sec, max_read_req_per_sec, max_presence_members_per_channel, max_presence_member_size_in_kb, max_channel_name_length, max_event_channels_at_once, max_event_name_length, max_event_payload_in_kb, max_event_batch_size, webhooks, enable_user_authentication)
-VALUES ('$APP_ID', '$APP_KEY', '$APP_SECRET', 200, 0, 1, 100, 100, 100, 100, 10, 100, 100, 200, 100, 10, '[]', 0)
-ON CONFLICT (id) DO NOTHING;
+VALUES ('$APP_ID', '$APP_KEY', '$APP_SECRET', $APP_MAX_CONNECTIONS, 0, 1, $APP_MAX_BACKEND_EVENTS, $APP_MAX_CLIENT_EVENTS, $APP_MAX_READ_REQ, 100, 10, 100, 100, 200, 100, 10, '[]', 0)
+ON CONFLICT (id) DO UPDATE SET
+    max_connections            = EXCLUDED.max_connections,
+    max_backend_events_per_sec = EXCLUDED.max_backend_events_per_sec,
+    max_client_events_per_sec  = EXCLUDED.max_client_events_per_sec,
+    max_read_req_per_sec       = EXCLUDED.max_read_req_per_sec,
+    enabled                    = EXCLUDED.enabled;
 "
 
 # -------------------------
@@ -123,6 +169,37 @@ sudo systemctl enable soketi.service
 sudo systemctl start soketi.service
 
 # -------------------------
+# Log retention — bound disk usage (${LOG_RETENTION_DAYS} days)
+# -------------------------
+echo "🧹 Configuring log retention (${LOG_RETENTION_DAYS} days)..."
+
+# journald: Soketi logs here (systemd unit uses StandardOutput=journal). Cap age + total size.
+sudo mkdir -p /etc/systemd/journald.conf.d
+sudo tee /etc/systemd/journald.conf.d/retention.conf > /dev/null <<EOL
+[Journal]
+MaxRetentionSec=${LOG_RETENTION_DAYS}day
+SystemMaxUse=500M
+EOL
+sudo systemctl restart systemd-journald
+
+# nginx access/error logs: daily rotation, keep ${LOG_RETENTION_DAYS} compressed
+# (Ubuntu's default is weekly x14 = ~14 weeks — too long for a small root volume).
+sudo tee /etc/logrotate.d/fuze-soketi-nginx > /dev/null <<EOL
+/var/log/nginx/*.log {
+    daily
+    rotate ${LOG_RETENTION_DAYS}
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        [ -f /var/run/nginx.pid ] && kill -USR1 \$(cat /var/run/nginx.pid)
+    endscript
+}
+EOL
+
+# -------------------------
 # Configure UFW firewall
 # -------------------------
 echo "Configuring firewall..."
@@ -149,6 +226,11 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
 
+        # Keep long-lived WebSocket connections open (nginx default is 60s, which
+        # silently drops idle POS/KDS/CFD sockets).
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
         add_header X-XSS-Protection "1; mode=block" always;
@@ -165,8 +247,12 @@ sudo systemctl restart nginx
 # -------------------------
 # Setup SSL with Certbot
 # -------------------------
-echo "🔐 Requesting SSL certificate..."
-sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $CERTBOT_EMAIL
+if sudo test -d "/etc/letsencrypt/live/$DOMAIN"; then
+  echo "🔐 SSL certificate already present for $DOMAIN — skipping certbot request."
+else
+  echo "🔐 Requesting SSL certificate..."
+  sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $CERTBOT_EMAIL
+fi
 
 # Reload Nginx
 sudo systemctl reload nginx
