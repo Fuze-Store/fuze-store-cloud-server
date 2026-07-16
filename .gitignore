@@ -1,6 +1,35 @@
+# Dependencies
 /node_modules
+
+# Build output
 /dist
 /build
 
+# Environment files (keep example)
 .env
-.env.previous
+.env.*
+!.env.example
+
+# Soketi config (keep example committed as soketi.json)
+# Copy and modify soketi.json for local use
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# SSL/TLS certificates
+*.pem
+*.key
+*.cert
+*.crt
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+>>>>>>> production

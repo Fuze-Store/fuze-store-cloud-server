@@ -5,5 +5,5 @@
 3. Run the setup.sql script to create necessary database tables.
     - psql -h localhost -d userstoreis -U admin -p 5432 -a -q -f /home/jobs/Desktop/resources/postgresql.sql
 4. Modify the variables in setup.sh as needed.
-<!-- 5. Run `chmod +x setup.sh` to make the script executable.
-6. Run `./setup.sh` to execute the setup script -->
+5. Run `chmod +x setup.sh` to make the script executable.
+6. Run `./setup.sh` to execute the setup script.

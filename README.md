@@ -17,7 +17,7 @@ This repository contains the cloud server setup for Fuze Store, featuring a real
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/fuze-store-cloud-server.git
+git clone https://github.com/Fuze-Store/fuze-store-cloud-server.git
 cd fuze-store-cloud-server
 ```
 
@@ -86,4 +86,4 @@ If using PostgreSQL for app management, run the SQL in `setup.sql` on your datab
 
 ## License
 
-This project is licensed under the MIT License.
+This project is intended for internal use. Please review and update the license as appropriate for your organization.
