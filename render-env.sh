@@ -25,14 +25,22 @@ if [ ! -f "$OUT_FILE" ]; then
   exit 0
 fi
 
+if ! command -v aws >/dev/null 2>&1; then
+  echo "render-env: aws CLI not installed — keeping existing .env"
+  echo "  install: sudo snap install aws-cli --classic   (or: sudo apt-get install -y awscli)"
+  exit 0
+fi
+
 params_file=$(mktemp)
+aws_err=$(mktemp)
 chmod 600 "$params_file"
-trap 'rm -f "$params_file" "$OUT_FILE.tmp"' EXIT
+trap 'rm -f "$params_file" "$aws_err" "$OUT_FILE.tmp"' EXIT
 
 if ! aws ssm get-parameters-by-path \
     --path "$SSM_PATH" --with-decryption --region "$REGION" \
-    --output json > "$params_file" 2>/dev/null; then
+    --output json > "$params_file" 2>"$aws_err"; then
   echo "render-env: cannot reach SSM (${SSM_PATH}) — keeping existing .env"
+  sed 's/^/  aws: /' "$aws_err" | head -4
   exit 0
 fi
 
