@@ -109,4 +109,6 @@ fi
 chmod 600 "$OUT_FILE.tmp"
 cp -p "$OUT_FILE" "$OUT_FILE.previous"
 mv "$OUT_FILE.tmp" "$OUT_FILE"
-echo "render-env: rendered $OUT_FILE with ${SSM_PATH}/* — restart with: docker compose up -d --force-recreate"
+echo "render-env: rendered $OUT_FILE with ${SSM_PATH}/*"
+echo "  restart soketi:  sudo systemctl restart soketi   (EC2 systemd install via setup.sh)"
+echo "  or local dev:    docker compose up -d --force-recreate"
