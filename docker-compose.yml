@@ -45,14 +45,16 @@ services:
       SOKETI_WEBHOOKS_BATCHING: "1"
       SOKETI_WEBHOOKS_BATCHING_DURATION: "1000"
 
-      # App credentials
-      SOKETI_DEFAULT_APP_ID: "fuze-store-app-id"
-      SOKETI_DEFAULT_APP_KEY: "fuze-store-app-key"
-      SOKETI_DEFAULT_APP_SECRET: "fuze-store-app-secret"
+      # App credentials — interpolated from ./.env (rendered from SSM Parameter
+      # Store by render-env.sh; never hardcode secrets in this committed file).
+      # Must match the Laravel API's PUSHER_APP_* values.
+      SOKETI_DEFAULT_APP_ID: "${SOKETI_DEFAULT_APP_ID}"
+      SOKETI_DEFAULT_APP_KEY: "${SOKETI_DEFAULT_APP_KEY}"
+      SOKETI_DEFAULT_APP_SECRET: "${SOKETI_DEFAULT_APP_SECRET}"
 
-      SOKETI_APP_KEY: "fuze-store-app-key"
-      SOKETI_APP_ID: "fuze-store-app-id"
-      SOKETI_APP_SECRET: "fuze-store-app-secret"
+      SOKETI_APP_KEY: "${SOKETI_DEFAULT_APP_KEY}"
+      SOKETI_APP_ID: "${SOKETI_DEFAULT_APP_ID}"
+      SOKETI_APP_SECRET: "${SOKETI_DEFAULT_APP_SECRET}"
       SOKETI_HOST: "0.0.0.0"
       SOKETI_PORT: 6001
 
