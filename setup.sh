@@ -7,6 +7,10 @@ set -e
 # Load environment variables from .env
 # -------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# CLI env overrides (e.g. `DOMAIN=socket.fuze-store.com bash setup.sh`) must
+# survive the .env sourcing below — capture them first.
+DOMAIN_CLI="${DOMAIN:-}"
+CERTBOT_EMAIL_CLI="${CERTBOT_EMAIL:-}"
 if [ -f "$SCRIPT_DIR/.env" ]; then
   set -a
   source "$SCRIPT_DIR/.env"
@@ -23,7 +27,7 @@ fi
 # Variables - Override in .env
 # -------------------------
 REPO_NAME="${REPO_NAME:-fuze-store-cloud-server}"
-DOMAIN="${DOMAIN:-socket.dev.fuze-store.com}"
+DOMAIN="${DOMAIN_CLI:-${DOMAIN:-socket.dev.fuze-store.com}}"
 PORT="${SOKETI_PORT:-6001}"
 DB_HOST="${SOKETI_DB_POSTGRES_HOST}"
 DB_PORT="${SOKETI_DB_POSTGRES_PORT}"
@@ -35,7 +39,7 @@ DB_VERSION="${SOKETI_APP_MANAGER_POSTGRES_VERSION}"
 APP_ID="${SOKETI_APP_ID:-fuze-store-app-id}"
 APP_KEY="${SOKETI_APP_KEY:-fuze-store-app-key}"
 APP_SECRET="${SOKETI_APP_SECRET:-fuze-store-app-secret}"
-CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@$DOMAIN}"
+CERTBOT_EMAIL="${CERTBOT_EMAIL_CLI:-${CERTBOT_EMAIL:-admin@$DOMAIN}}"
 SOKETI_USER="${SOKETI_USER:-ubuntu}"
 INSTALL_DIR="${INSTALL_DIR:-/home/$SOKETI_USER/$REPO_NAME}"
 
@@ -152,7 +156,8 @@ sudo chmod 600 $INSTALL_DIR/.env
 # -------------------------
 # Create systemd service for Soketi
 # -------------------------
-echo "🚦 Creating systemd service..."
+SOKETI_BIN="$(command -v soketi || echo /usr/local/bin/soketi)"
+echo "🚦 Creating systemd service (soketi at $SOKETI_BIN)..."
 sudo tee /etc/systemd/system/soketi.service > /dev/null <<EOL
 [Unit]
 Description=Soketi WebSocket Server
@@ -163,7 +168,7 @@ Type=simple
 User=$SOKETI_USER
 WorkingDirectory=$INSTALL_DIR
 EnvironmentFile=$INSTALL_DIR/.env
-ExecStart=/usr/bin/soketi start
+ExecStart=$SOKETI_BIN start
 StandardOutput=journal
 StandardError=journal
 Restart=always
