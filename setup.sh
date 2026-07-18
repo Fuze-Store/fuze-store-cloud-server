@@ -141,7 +141,11 @@ sudo npm install -g @soketi/soketi
 # Copy .env to install directory
 # -------------------------
 echo "🛠 Setting up Soketi config..."
-sudo cp "$SCRIPT_DIR/.env" $INSTALL_DIR/.env
+if [ "$SCRIPT_DIR/.env" != "$INSTALL_DIR/.env" ]; then
+  sudo cp "$SCRIPT_DIR/.env" "$INSTALL_DIR/.env"
+else
+  echo "   .env already lives in INSTALL_DIR (repo == install dir) — no copy needed."
+fi
 sudo chown $SOKETI_USER:$SOKETI_USER $INSTALL_DIR/.env
 sudo chmod 600 $INSTALL_DIR/.env
 
