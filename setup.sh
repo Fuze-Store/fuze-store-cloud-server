@@ -107,8 +107,12 @@ sudo mkdir -p $INSTALL_DIR
 sudo chown $SOKETI_USER:$SOKETI_USER $INSTALL_DIR
 
 # -------------------------
-# Run database setup
+# Run database setup — postgres app manager ONLY. The standard EC2 deployment
+# uses SOKETI_APP_MANAGER_DRIVER=array (credentials served from
+# SOKETI_DEFAULT_APP_* env; see .env.example + the 2026-07-16 incident) and
+# needs no database.
 # -------------------------
+if [ "${SOKETI_APP_MANAGER_DRIVER:-array}" = "postgres" ]; then
 echo "🗄️ Running setup.sql..."
 PGPASSWORD=$DB_PASS psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$SCRIPT_DIR/setup.sql"
 
@@ -123,6 +127,9 @@ ON CONFLICT (id) DO UPDATE SET
     max_read_req_per_sec       = EXCLUDED.max_read_req_per_sec,
     enabled                    = EXCLUDED.enabled;
 "
+else
+  echo "🗄️ App manager driver is '${SOKETI_APP_MANAGER_DRIVER:-array}' — skipping setup.sql (array driver needs no DB)."
+fi
 
 # -------------------------
 # Install Soketi globally
